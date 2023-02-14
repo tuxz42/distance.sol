@@ -1,0 +1,141 @@
+pragma solidity ^0.8.0;
+
+contract Token {
+    // Define el nombre y símbolo del token
+    string public constant name = "Distance Token";
+    string public constant symbol = "DT";
+
+    // Define la cantidad total de tokens
+    uint256 public totalSupply;
+
+    // Define la cantidad de tokens asignados a cada dirección
+    mapping (address => uint256) public balanceOf;
+
+    // Define la cantidad total de distancias acumuladas
+    uint256 public totalDistance;
+
+    // Evento que se dispara cuando se minan tokens
+    event Mint(address indexed to, uint256 amount);
+
+    // Función que permite minar tokens
+    function mint(uint256 amount, uint256 distance) public {
+        // Verifica que la cantidad de tokens a minar sea válida
+        require(amount > 0, "Cantidad invalida");
+
+        // Verifica que la cantidad de distancias a acumular sea válida
+        require(distance > 0, "Distancia invalida");
+
+        // Verifica que la cantidad de tokens a minar no sobrepasa el límite máximo
+        require(balanceOf[msg.sender] + amount >= balanceOf[msg.sender], "Sobrescripcion");
+
+        // Verifica que el GPS es auténtico y verificable
+        // TODO: Verificación de GPS
+
+        // Asigna los tokens a la dirección del remitente
+        balanceOf[msg.sender] += amount;
+
+        // Verifica que la cantidad total de tokens en circulación no sobrepasa el límite máximo
+        require(totalSupply + amount >= totalSupply, "Sobrescripcion");
+
+        // Aumenta la cantidad total de tokens en circulación
+        totalSupply += amount;
+
+        // Verifica que la cantidad total de distancias acumuladas no sobrepasa el límite máximo
+        require(totalDistance + distance >= totalDistance, "Sobrescripcion");
+
+        // Aumenta la cantidad total de distancias acumuladas
+        totalDistance += distance;
+
+        // Dispara el evento Mint
+        emit Mint(msg.sender, amount);
+    }
+
+    // Función que permite transferir tokens de una dirección a otra
+    function transfer(address to, uint256 amount) public {
+        // Verifica que la dirección destinataria sea válida
+        require(to != address(0), "Direccion invalida");
+
+                // Verifica que la cantidad de tokens a transferir sea válida
+        require(amount > 0, "Cantidad invalida");
+
+        // Verifica que el remitente tenga suficientes tokens para transferir
+        require(balanceOf[msg.sender] >= amount, "Saldo insuficiente");
+
+        // Verifica que la cantidad de tokens transferidos no sobrepasa el límite máximo
+        require(balanceOf[to] + amount >= balanceOf[to], "Sobrescripcion");
+
+        // Reduce la cantidad de tokens del remitente
+        balanceOf[msg.sender] -= amount;
+
+        // Aumenta la cantidad de tokens del destinatario
+        balanceOf[to] += amount;
+    }
+
+    // Función que permite reembolsar tokens a una dirección
+    function refund(address to, uint256 amount) public {
+        // Verifica que la dirección destinataria sea válida
+        require(to != address(0), "Direccion invalida");
+
+        // Verifica que la cantidad de tokens a reembolsar sea válida
+        require(amount > 0, "Cantidad invalida");
+
+        // Verifica que el contrato tenga suficientes tokens para reembolsar
+        require(balanceOf[address(this)] >= amount, "Saldo insuficiente");
+
+        // Verifica que la cantidad de tokens reembolsados no sobrepasa el límite máximo
+        require(balanceOf[to] + amount >= balanceOf[to], "Sobrescripcion");
+
+        // Reduce la cantidad de tokens del contrato
+        balanceOf[address(this)] -= amount;
+
+        // Aumenta la cantidad de tokens del destinatario
+        balanceOf[to] += amount;
+    }
+
+    // Define el propietario del contrato
+    address private owner;
+
+    // Función de constructor que establece el propietario del contrato
+    constructor() public {
+        owner = msg.sender;
+    }
+
+    // Función que permite establecer el propietario del contrato
+    function setOwner(address newOwner) public {
+        // Verifica que solo el propietario actual pueda cambiar el propietario
+        require(msg.sender == owner, "No tienes permiso para cambiar el propietario");
+
+        // Verifica que la dirección del nuevo propietario sea válida
+        require(newOwner != address(0), "Direccion invalida");
+
+        // Cambia el propietario
+        owner = newOwner;
+    }
+
+    // Función que permite pausar el contrato
+    function pause() public {
+        // Verifica que solo el propietario actual pueda pausar el contrato
+        require(msg.sender == owner, "No tienes permiso para pausar el contrato");
+
+        // Establece el estado del contrato en pausado
+                // TODO: Establecer el estado del contrato en pausado
+    }
+
+    // Función que permite reanudar el contrato
+    function resume() public {
+        // Verifica que solo el propietario actual pueda reanudar el contrato
+        require(msg.sender == owner, "No tienes permiso para reanudar el contrato");
+
+        // Establece el estado del contrato en reanudado
+        // TODO: Establecer el estado del contrato en reanudado
+    }
+
+    // Función que permite recuperar el estado del contrato
+    function getStatus() public view returns (bool) {
+        // TODO: Recuperar el estado del contrato
+    }
+
+    // Función que permite recuperar la cantidad total de tokens minados
+    function getTotalSupply() public view returns (uint256) {
+        return totalSupply;
+  
