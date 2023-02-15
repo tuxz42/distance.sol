@@ -1,0 +1,275 @@
+pragma solidity ^0.8.0;
+
+contract Token {
+    // Define el nombre y símbolo del token
+    string public constant name = "Distance Token";
+    string public constant symbol = "DT";
+
+    // Define la cantidad total de tokens
+    uint256 public totalSupply;
+
+    // Define la cantidad de tokens asignados a cada dirección
+    mapping (address => uint256) public balanceOf;
+
+    // Define la cantidad total de distancias acumuladas
+    uint256 public totalDistance;
+
+    // Define el estado del contrato (activo o pausado)
+    bool public paused;
+
+    // Evento que se dispara cuando se minan tokens
+    event Mint(address indexed to, uint256 amount);
+
+    // Función que permite minar tokens
+    function mint(uint256 amount, uint256 distance) public {
+        // Verifica que el contrato no esté pausado
+        require(!paused, "Contrato pausado");
+
+        // Verifica que la cantidad de tokens a minar sea válida
+        require(amount > 0, "Cantidad invalida");
+
+        // Verifica que la cantidad de distancias a acumular sea válida
+        require(distance > 0, "Distancia invalida");
+
+        // Verifica que la cantidad de tokens a minar no sobrepasa el límite máximo
+        require(balanceOf[msg.sender] + amount >= balanceOf[msg.sender], "Sobrescripcion");
+
+        // Verifica que el GPS es auténtico y verificable
+        // TODO: Verificación de GPS
+
+        // Asigna los tokens a la dirección del remitente
+        balanceOf[msg.sender] += amount;
+
+        // Verifica que la cantidad total de tokens en circulación no sobrepasa el límite máximo
+        require(totalSupply + amount >= totalSupply, "Sobrescripcion");
+
+        // Aumenta la cantidad total de tokens en circulación
+        totalSupply += amount;
+
+        // Verifica que la cantidad total de distancias acumuladas no sobrepasa el límite máximo
+        require(totalDistance + distance >= totalDistance, "Sobrescripcion");
+
+        // Aumenta la cantidad total de distancias acumuladas
+        totalDistance += distance;
+
+        // Dispara el evento Mint
+        emit Mint(msg.sender, amount);
+    }
+
+    // Función que permite transferir tokens de una dirección a otra
+    function transfer(address to, uint256 amount) public {
+        // Verifica que el contrato no esté pausado
+        require(!paused, "Contrato pausado");
+
+        // Verifica que la dirección destinataria sea válida
+        require(to != address(0), "Direccion invalida");
+
+        // Verifica que la cantidad de tokens a transferir sea válida
+        require(amount > 0, "Cantidad invalida");
+
+        // Verifica que el remitente tenga suficientes tokens para transferir
+        require(balanceOf[msg.sender] >= amount, "Saldo insuficiente");
+
+        // Verifica que la dirección remitente no sea igual a la dirección destinataria
+        require(msg.sender != to, "No se pueden transferir tokens a sí mismo");
+
+        // Verifica que la cantidad de tokens transferidos no sobrepasa el límite máximo
+        require(balanceOf[to] + amount >= balanceOf[to], "Sobrescripcion");
+
+        // Reduce la cantidad de tokens del remitente
+        balanceOf[msg.sender] -=
+        
+                // Aumenta la cantidad de tokens del destinatario
+        balanceOf[to] += amount;
+    }
+
+    // Función que permite transferir tokens de una dirección a otra mediante una autorización previa
+    function transferFrom(address from, address to, uint256 amount) public {
+        // Verifica que el contrato no esté pausado
+        require(!paused, "Contrato pausado");
+
+        // Verifica que la dirección destinataria sea válida
+        require(to != address(0), "Direccion invalida");
+
+        // Verifica que la cantidad de tokens a transferir sea válida
+        require(amount > 0, "Cantidad invalida");
+
+        // Verifica que el remitente tenga suficientes tokens autorizados para transferir
+        require(amount <= allowance[from][msg.sender], "Saldo insuficiente");
+
+        // Verifica que el remitente tenga suficientes tokens para transferir
+        require(amount <= balanceOf[from], "Saldo insuficiente");
+
+        // Verifica que la dirección remitente no sea igual a la dirección destinataria
+        require(from != to, "No se pueden transferir tokens a sí mismo");
+
+        // Verifica que la cantidad de tokens transferidos no sobrepasa el límite máximo
+        require(balanceOf[to] + amount >= balanceOf[to], "Sobrescripcion");
+
+        // Reduce la cantidad de tokens del remitente
+        balanceOf[from] -= amount;
+
+        // Reduce la cantidad de tokens autorizados del remitente
+        allowance[from][msg.sender] -= amount;
+
+        // Aumenta la cantidad de tokens del destinatario
+        balanceOf[to] += amount;
+
+        // Dispara el evento Transfer
+        emit Transfer(from, to, amount);
+    }
+
+    // Función que permite aprobar a otra dirección para transferir tokens en su nombre
+    function approve(address spender, uint256 amount) public {
+        // Verifica que el contrato no esté pausado
+        require(!paused, "Contrato pausado");
+
+        // Verifica que la dirección del destinatario sea válida
+        require(spender != address(0), "Direccion invalida");
+
+        // Establece la cantidad de tokens autorizados para transferir a la dirección destinataria
+        allowance[msg.sender][spender] = amount;
+
+        // Dispara el evento Approval
+        emit Approval(msg.sender, spender, amount);
+    }
+
+    // Función que permite recuperar la cantidad de tokens autorizados para transferir a una dirección específica
+    function allowance(address owner, address spender) public view returns (uint256) {
+        return allowance[owner][spender];
+    }
+
+    // Función que permite reembolsar tokens a una dirección
+    function refund(address to, uint256 amount) public {
+        // Verifica que el contrato no esté pausado
+        require(!paused, "Contrato pausado");
+
+        // Verifica que la dirección destinataria sea válida
+        require(to != address(0), "Direccion invalida");
+
+        // Verifica que la cantidad de tokens a reembolsar sea válida
+        require(amount > 0, "Cantidad invalida");
+
+        // Verifica que el contrato tenga suficientes tokens para reembolsar
+        require(balanceOf[address(this)] >= amount, "Saldo insuficiente");
+
+        // Verifica que la cantidad de tokens reembolsados no sobrepasa el límite máximo
+        require(balanceOf[to] + amount >= balanceOf[to], "Sobrespasa el limite diario"
+        
+                // Reduce la cantidad de tokens del contrato
+        balanceOf[address(this)] -= amount;
+
+        // Aumenta la cantidad de tokens del destinatario
+        balanceOf[to] += amount;
+    }
+
+    // Define el propietario del contrato
+    address private owner;
+
+    // Define un mapping para almacenar las direcciones de los operadores
+    mapping (address => mapping (address => bool)) private operators;
+
+    // Define un mapping para almacenar las direcciones de los aprobadores
+    mapping (address => mapping (address => bool)) private approvers;
+
+    // Función de constructor que establece el propietario del contrato
+    constructor() {
+        owner = msg.sender;
+    }
+
+    // Modificador que verifica que el remitente sea el propietario del contrato
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Solo el propietario puede realizar esta operacion");
+        _;
+    }
+
+    // Modificador que verifica que el remitente sea un operador autorizado
+    modifier onlyOperator(address sender) {
+        require(operators[sender][msg.sender], "No tienes permiso para realizar esta operacion");
+        _;
+    }
+
+    // Modificador que verifica que el remitente sea un aprobador autorizado
+    modifier onlyApprover(address sender) {
+        require(approvers[sender][msg.sender], "No tienes permiso para realizar esta operacion");
+        _;
+    }
+
+    // Función que permite establecer el propietario del contrato
+    function setOwner(address newOwner) public onlyOwner {
+        // Verifica que la dirección del nuevo propietario sea válida
+        require(newOwner != address(0), "Direccion invalida");
+
+        // Cambia el propietario
+        owner = newOwner;
+    }
+
+    // Función que permite pausar el contrato
+    function pause() public onlyOwner {
+        paused = true;
+    }
+
+    // Función que permite reanudar el contrato
+    function resume() public onlyOwner {
+        paused = false;
+    }
+
+    // Función que permite recuperar el estado del contrato
+    function getStatus() public view returns (bool) {
+        return paused;
+    }
+
+    // Función que permite agregar una dirección como operador autorizado
+    function addOperator(address operator) public onlyOwner {
+        // Verifica que la dirección del operador sea válida
+        require(operator != address(0), "Direccion invalida");
+
+        // Agrega la dirección del operador al mapping
+        operators[msg.sender][operator] = true;
+    }
+
+    // Función que permite eliminar una dirección como operador autorizado
+    function removeOperator(address operator) public onlyOwner {
+        // Verifica que la dirección del operador sea válida
+        require(operator != address(0), "Direccion invalida");
+
+        // Elimina la dirección del operador del mapping
+        operators[msg.sender][operator] = false;
+    }
+
+    // Función que permite agregar una dirección como aprobador autorizado
+    function addApprover(address approver) public onlyOperator(msg.sender) {
+        // Verifica que la dirección del aprobador sea válida
+        require(approver != address(0), "Direccion invalida");
+
+        // Agrega la dirección del aprobador al mapping
+        approvers[msg.sender][approver] = true;
+    }
+
+    // Función que permite eliminar una dirección como aprobador autorizado
+    function removeApprover(address approver) public onlyOperator(msg.sender) {
+               // Verifica que la dirección del aprobador sea válida
+        require(approver != address(0), "Direccion invalida");
+
+        // Elimina la dirección del aprobador del mapping
+        approvers[msg.sender][approver] = false;
+    }
+
+    // Función que permite verificar si una dirección es un operador autorizado
+    function isOperator(address sender, address operator) public view returns (bool) {
+        return operators[sender][operator];
+    }
+
+    // Función que permite verificar si una dirección es un aprobador autorizado
+    function isApprover(address sender, address approver) public view returns (bool) {
+        return approvers[sender][approver];
+    }
+
+    // Función que permite recuperar la cantidad total de tokens minados
+    function getTotalSupply() public view returns (uint256) {
+        return totalSupply;
+    }
+}
+
+
+
